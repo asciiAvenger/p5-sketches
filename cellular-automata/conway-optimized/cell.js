@@ -18,8 +18,15 @@ class Cell {
         if (dr == 0 && dc == 0) {
           continue;
         }
+        
+        const row = this.row + dr;
+        const col = this.col + dc;
+        const key = hashKey(row, col);
 
-        cells.add(new Cell(this.row + dr, this.col + dc));
+        if (!cells.has(key)) {
+          const cell = new Cell(row, col);
+          cells.set(key, cell);
+        }
       }
     }
   }
@@ -34,7 +41,8 @@ class Cell {
           continue;
         }
 
-        if (cells.has(new Cell(this.row + dr, this.col + dc))) {
+        const key = hashKey(this.row + dr, this.col + dc);
+        if (cells.has(key)) {
           sum += 1;
         }
       }

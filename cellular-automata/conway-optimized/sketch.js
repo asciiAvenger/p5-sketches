@@ -1,4 +1,4 @@
-let cells = new Set();
+let cells = new Map();
 
 const rows = 200;
 const cols = 200;
@@ -15,17 +15,22 @@ function setup() {
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       if (floor(random(2)) > 0) {
-        cell = new Cell(r, c);
-        cells.add(cell);
+        const key = hashKey(r, c);
+        const cell = new Cell(r, c);
+        cells.set(key, cell);
       }
     }
   }
 }
 
+function hashKey(row, col) {
+  return (row << 10) | col;
+}
+
 function draw() {
   background(0);
 
-  const cellCandidates = new Set();
+  const cellCandidates = new Map();
 
   for (const cell of cells.values()) {
     // draw currently alive cells
@@ -34,17 +39,16 @@ function draw() {
     // add cell candidates for next iteration
     cell.addCellCandidates(cellCandidates);
   }
-  console.log(cellCandidates.size);
 
-  const nextCells = new Set();
+  const nextCells = new Map();
 
-  for (const cell of cellCandidates) {
+  for (const cell of cellCandidates.values()) {
     // count the cells neighbors in the current generation of cells
     numNeighbors = cell.countNeighbors(cells);
-    console.log(numNeighbors);
 
-    if (numNeighbors == 3 || (cells.has(cell) && numNeighbors == 2)) {
-      nextCells.add(cell);
+    const key = hashKey(cell.row, cell.col);
+    if (numNeighbors == 3 || (cells.has(key) && numNeighbors == 2)) {
+      nextCells.set(key, cell);
     }
   }
 
