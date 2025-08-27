@@ -1,10 +1,11 @@
 let cells;
 
-const rows = 500;
-const cols = 500;
+const rows = 400;
+const cols = 400;
 
 let cellW;
 let cellH;
+let totalCells;
 
 function setup() {
   createCanvas(1000, 1000);
@@ -14,11 +15,11 @@ function setup() {
   cellW = width / cols;
   cellH = height / rows;
 
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      if (floor(random(2)) > 0) {
-        cells.add(toKey(r, c, cols));
-      }
+  totalCells = rows * cols;
+
+  for (let i = 0; i < totalCells; i++) {
+    if (floor(random(2)) > 0) {
+      cells.add(i);
     }
   }
 }
@@ -26,77 +27,89 @@ function setup() {
 function draw() {
   background(0);
   fill(255);
-
-  const cellCandidates = new Set();
-
-  for (const cellKey of cells.values()) {
-    const [row, col] = toRowCol(cellKey, cols);
-
-    // draw currently alive cells
-    rect(col * cellW, row * cellH, cellW, cellH);
-
-    // add cell candidates for next iteration
-    addCellCandidates(row, col, cols, cellCandidates);
-  }
+  stroke(0);
 
   const nextCells = new Set();
 
-  for (const cellKey of cellCandidates.values()) {
-    const [row, col] = toRowCol(cellKey, cols);
+  for (const cellIndex of cells.values()) {
+    const [x, y] = indexToCoords(cellIndex);
 
-    // count the cells neighbors in the current generation of cells
-    const numNeighbors = countNeighbors(row, col, cols, cells);
+    // draw currenly alive cells
+    rect(x, y, cellW, cellH);
 
-    if (numNeighbors == 3 || (cells.has(cellKey) && numNeighbors == 2)) {
-      nextCells.add(cellKey);
+    // add cell candidates for next iteration
+    addCellCandidates(cellIndex, nextCells);
+  }
+
+  for (const cellIndex of nextCells.values()) {
+    const numNeighbors = countNeighbors(cellIndex, cells);
+
+    if (!(numNeighbors == 3 || (cells.has(cellIndex) && numNeighbors == 2))) {
+      nextCells.delete(cellIndex);
     }
   }
 
   cells = nextCells;
+  // noLoop();
 }
 
-function toKey(row, col, numCols) {
-  return col + row * numCols;
+function indexToCoords(i) {
+  const x = (i % cols) * cellW;
+  const y = floor(i / rows) * cellH;
+
+  return [x, y];
 }
 
-function toRowCol(key, numCols) {
-  const row = floor(key / numCols);
-  const col = key % numCols;
-  return [row, col];
-}
+// all surrounding cells are potential candidates that
+// have to be checked before the next generation
+// in the row: index - 1, index, index + 1
+// in the column: index - cols, index, index + cols
+function addCellCandidates(index, candidates) {
+  const col = index % cols;
+  for (let i = -1; i <= 1; i++) {
+    const newCol = col + i;
 
-function addCellCandidates(row, col, numCols, candidates) {
-  for (let dr = -1; dr <= 1; dr++) {
-    for (let dc = -1; dc <= 1; dc++) {
-      // don't add the cell itself
-      if (dr == 0 && dc == 0) {
+    if (newCol < 0 || newCol >= cols) {
+      continue;
+    }
+
+    for (let j = -cols; j <= index + cols + 1; j += cols) {
+      const newIndex = index + i + j;
+
+      if (newIndex < 0 || newIndex >= totalCells) {
         continue;
       }
 
-      const r = row + dr;
-      const c = col + dc;
-      const key = toKey(r, c, numCols);
-
-      candidates.add(key);
+      candidates.add(newIndex);
     }
   }
 }
 
-function countNeighbors(row, col, numCols, cells) {
+// counts the number of neighbors a cell with the index index
+// has inside of the cells set
+function countNeighbors(index, cells) {
   let sum = 0;
+  const col = index % cols;
+  const row = floor(index / rows);
 
-  for (let dr = -1; dr <= 1; dr++) {
-    for (let dc = -1; dc <= 1; dc++) {
+  for (let currentCol = col - 1; currentCol <= col + 1; currentCol++) {
+    if (currentCol < 0 || currentCol >= cols) {
+      continue;
+    }
+
+    for (let currentRow = row - 1; currentRow <= row + 1; currentRow++) {
       // don't count the cell itself
-      if (dr == 0 && dc == 0) {
+      if (
+        currentRow < 0 ||
+        currentRow >= rows ||
+        (col == currentCol && row == currentRow)
+      ) {
         continue;
       }
 
-      const r = row + dr;
-      const c = col + dc;
-      const key = toKey(r, c, numCols);
-      if (cells.has(key)) {
-        sum += 1;
+      const currentIndex = currentRow * rows + currentCol;
+      if (cells.has(currentIndex)) {
+        sum++;
       }
     }
   }
